@@ -1,32 +1,65 @@
-import { 
-    Controller, 
-    Body, 
+import {
+    Controller,
+    Body,
     Post,
     Get,
     Patch,
     Delete,
     Param,
     Query,
-    NotFoundException
+    NotFoundException,
+    Session,
+    UseGuards
 } from '@nestjs/common';
+
+import { Serialize } from 'src/interceptors/serialize.interceptor';
+import { AuthGuard } from 'src/guards/auth.guard';
+
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { UsersService } from './users.service';
-import { Serialize } from 'src/interceptors/serialize.interceptor';
 import { UserDto } from './dtos/user.dto';
+import { AuthService } from './auth.service';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { User } from './user.entity';
 
 @Serialize(UserDto)
 @Controller('auth')
 export class UsersController {
-    constructor(private usersService: UsersService) {}
+    constructor(
+        private usersService: UsersService,
+        private authService: AuthService
+    ) { }
+
+    @Get('whoami')
+    @UseGuards(AuthGuard)
+    whoAmI(@CurrentUser() user: User) {
+        return user;
+    }
 
     @Post('signup')
-    createUser(@Body() body: CreateUserDto) {
-        this.usersService.create(body.email, body.password);
+    async createUser(@Body() body: CreateUserDto, @Session() session: any) {
+        const user = await this.authService.signUp(body.email, body.password);
+        session.userId = user.id;
+
+        return user;
+    }
+
+    @Post('signout')
+    signOut(@Session() session: any) {
+        session.userId = null;
+    }
+
+    @Post('signin')
+    async signIn(@Body() body: CreateUserDto, @Session() session: any) {
+        const user = await this.authService.signIn(body.email, body.password);
+        session.userId = user.id;
+
+        return user;
     }
 
     @Get()
-    findAllUsers(@Query('email') email:string) {
+    findAllUsers(@Query('email') email: string) {
         return this.usersService.find(email);
     }
 

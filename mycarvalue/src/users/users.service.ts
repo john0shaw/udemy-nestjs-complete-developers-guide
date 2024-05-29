@@ -6,23 +6,26 @@ import { User } from './user.entity';
 
 @Injectable()
 export class UsersService {
-    constructor(@InjectRepository(User) private repo: Repository<User>) {}
+    constructor(@InjectRepository(User) private repo: Repository<User>) { }
 
     create(email: string, password: string) {
-        const user = this.repo.create({email, password});
+        const user = this.repo.create({ email, password });
         return this.repo.save(user);
     }
 
     findOne(id: number) {
+        if (!id) {
+            return null;
+        }
         return this.repo.findOneBy({ id });
     }
 
     find(email: string) {
-        return this.repo.find({where: { email }});
+        return this.repo.find({ where: { email } });
     }
 
     async update(id: number, attrs: Partial<User>) {
-        const user = await this.repo.findOneBy({id});
+        const user = await this.repo.findOneBy({ id });
         if (!user) {
             throw new NotFoundException('user not found');
         }
@@ -32,7 +35,7 @@ export class UsersService {
     }
 
     async remove(id: number) {
-        const user = await this.repo.findOneBy({id});
+        const user = await this.repo.findOneBy({ id });
         if (!user) {
             throw new NotFoundException('user not found');
         }
